@@ -1,8 +1,4 @@
-#!/usr/bin/env python
-
 '''
-hgrc_cli
-
 Command Line Interface for editing .hgrc / Mercurial.ini configuration files
 '''
 
@@ -22,33 +18,37 @@ r       (re)load a new configuration from disk (discarding changes)
 h       view this help screen
 """
 
-def hgrc_cli(ui, **opts):
+
+def hgrccli(ui, repo, **opts):
     """Edit mercurial configuration"""
-    hgconfig(ui)
+    hgconfig(ui, repo)
 
 
 class hgconfig(object):
     _ui = None
     _conf = ""
     _path = ""
-    def __init__(self, ui):
+    _paths = []
+
+    def __init__(self, ui, repo):
         self._ui = ui
-        self._conf = self.reload_conf()
-        self.print_help()
+        util.rcpath().append(repo.join('hgrc'))
+        self._paths = filter(lambda f: os.path.isfile(f), util.rcpath())
+        self.reloadconf()
+        self.printhelp()
         while True:
-            print "CONF! " + _conf
-            print "PATH!" + _path
+            # self._conf.sections()
+            # self._conf.add_section("peter piper")
             index = self._ui.promptchoice("(m, v, r, w, q, h)>>>",
             _options, len(_options) - 1) # default to 'help'
-            [lambda: self.mod_section(),
-            lambda: self.view_conf(),
-            lambda: self.reload_conf(),
-            lambda: self.write_conf(),
+            [lambda: self.modsection(),
+            lambda: self.viewconf(),
+            lambda: self.reloadconf(),
+            lambda: self.writeconf(),
             lambda: exit(0),
-            lambda: self.print_help()][index]()
+            lambda: self.printhelp()][index]()
 
-
-    def mod_section(self):
+    def modsection(self):
         """Adds or modifies sections and properties to current configuration"""
         sec = self._ui.prompt("Enter section name: ", "")
         if sec not in self._conf._sections.keys():
@@ -61,28 +61,28 @@ class hgconfig(object):
         val = self._ui.prompt("Enter property value" + old_val, "")
         self._conf[sec][prop] = val
 
-    def view_conf(self):
-        self._ui.status("\n" + str(self._conf) + "\n")
+    def viewconf(self):
+        self._ui.status("\n%s\n" % str(self._conf))
 
-    def reload_conf(self):
-        paths = filter(lambda f: os.path.isfile(f), util.rcpath())
-        if len(paths) > 1:
-            self._ui.status("Available configurations:\n")
-            for i in range(len(paths)):
-                print "[" + str(i) + "]\t" + paths[i]
-            index = self._ui.promptchoice("Which would you like to edit? ",
-            map(lambda num: "&" + str(num), range(len(paths))), len(paths) - 1)
-            self._path = paths[index]
+    def reloadconf(self):
+        if len(self._paths) > 1:
+            self._ui.status("\nSelect configuration to edit:\n")
+            for i in range(len(self._paths)):
+                print " " + str(i) + ".  " + self._paths[i]
+            index = self._ui.promptchoice(">",
+            map(lambda num: "&" + str(num), range(len(self._paths))),
+            len(self._paths) - 1)
+            self._path = self._paths[index]
             self._conf = INIConfig(open(self._path))
-        elif len(paths) == 1:
-            self._path = paths[0]
+        elif len(self._paths) == 1:
+            self._path = self._paths[0]
             self._conf = INIConfig(open(self._path))
         else:
             # This is a little silly, since without a valid config file
             # how could this extension be loaded? But for completeness...
             self._path = default = util.user_rcpath()[0]
-            index = self._ui.promptchoice("Unable to find configuration file. "+
-            "Would you like to make one at " + default + "?",
+            index = self._ui.promptchoice("Unable to find configuration file."+
+            " Would you like to make one at %s?" % default,
             ['&yes', '&no'], 'y')
             if index == 1:
                 self._ui.status("No configuration to edit")
@@ -90,19 +90,17 @@ class hgconfig(object):
             self._conf = INIConfig(open(default, "a+"))
         self._ui.status("Configuration loaded.\n")
 
-    def write_conf(self):
-        print "PATH: " + self._path
-        f = open(self._path, 'w')
-        print >>f, conf
+    def writeconf(self):
+        f = open(self._path, 'wb')
+        f.write(str(self._conf))
         f.close()
-        self._ui.status("Configuration written to " + _path + "\n")
+        self._ui.status("Configuration written to %s\n" % self._path)
         exit(0)
 
-    def print_help(self):
+    def printhelp(self):
         self._ui.status(_help)
 
-commands.norepo += " hgrc"
 cmdtable = {
-    "hgrc": (hgrc_cli,
+    "hgrc": (hgrccli,
                      [],
                      "hg hgrc")}
