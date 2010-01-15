@@ -2,9 +2,14 @@
 Command Line Interface for editing .hgrc / Mercurial.ini configuration files
 '''
 
+try:
+    from iniparse import SafeConfigParser
+    _noiniparse = False
+except Exception:
+    _noiniparse = True
 from mercurial.i18n import _
 from mercurial import commands, hg, util
-from iniparse import SafeConfigParser
+
 from ConfigParser import NoOptionError, NoSectionError
 import os, StringIO
 
@@ -25,6 +30,9 @@ h       view this help screen
 
 def hgrccli(ui, repo, **opts):
     """Edit mercurial configuration"""
+    if _noiniparse:
+        print "To use the hgrc editor extension you must have iniparse installed.\nIt can be found at http://code.google.com/p/iniparse/"
+        exit(0)
     hgconfig(ui, repo)
 
 
@@ -60,10 +68,10 @@ class hgconfig(object):
             self._conf.add_section(sec)
         prop = self._ui.prompt(_("Enter property name: "), "")
         try:
-            old_val = _(" (currently '%d'): ") % self._conf.get(sec, prop)
+            old_val = _(" (currently '%s'): ") % self._conf.get(sec, prop)
         except NoOptionError:
             old_val = ": "
-        val = self._ui.prompt(_("Enter property value %s") % old_val)
+        val = self._ui.prompt(_("Enter property value %s") % old_val, "")
         self._conf.set(sec, prop, val)
         
     def delsection(self):
