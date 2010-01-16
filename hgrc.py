@@ -64,16 +64,14 @@ class hgconfig(object):
         userpath = util.user_rcpath()[0]
         repopath = repo.join('hgrc')
         util.rcpath().append(repopath)
-        self._paths = filter(lambda f: os.path.isfile(f), util.rcpath())
+        self._paths = [f for f in util.rcpath() if os.path.isfile(f)]
         self.checkpath(userpath, "user")
         self.checkpath(repopath, "repository")
 
     def checkpath(self, path, pathtype):
-        if path not in self._paths:
-            index = self._ui.promptchoice(_("No %(a)s configuration " +
-            "found at %(b)s.\nWould you like to create one [y n]?") %
-            {'a': pathtype, 'b': path}, ['&no', '&yes'], 1)
-            if index:
+        if path not in self._paths and self._ui.promptchoice(_("No %(a)s "+
+        "configuration found at %(b)s.\nWould you like to create one [y n]?") %
+            {'a': pathtype, 'b': path}, ['&no', '&yes'], 1):
                 with open(path, "wb") as _c:
                     pass
                 self._paths.append(path)
@@ -167,13 +165,10 @@ class hgconfig(object):
         exit(0)
 
     def exitext(self):
-        if self._dirty:
-            index = self._ui.promptchoice("You have unsaved changes.\
-             Really quit without saving [y n]?",
-            ['&yes', '&no'], 1)
-            if index:
-                return
-        exit(0)
+        if self._dirty and self._ui.promptchoice("You have unsaved changes.\n"
+             "Really quit without saving [y n]?", ['&yes', '&no'], 1):
+             return
+        else: exit(0)
 
     def printhelp(self):
         self._ui.status(_help)
