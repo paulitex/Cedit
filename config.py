@@ -1,5 +1,9 @@
 '''
-Command Line Interface for editing .hgrc / Mercurial.ini configuration files
+Command Line interactive editor for Mercurial configuration files.
+
+This extension adds two commands to Mercurial:
+1. hg config - interactive editor for Mercurial configuration files
+2. hg setuser - sets a username and password in the default user configuration file.
 '''
 
 try:
@@ -15,13 +19,17 @@ import os
 _options = ['&add', '&remove', '&view', 're&load', '&write', '&quit', '&help']
 _help =_("""
 Mercurial configuration editor extension.
+
+A '*' before the prompt denotes the file has been modified since last saving.
+Type 'sections'
+
 Commands:
 a       add to or modify your configuration
 r       remove a section or property from your configuration
 v       view current configuration, including changes
-w       write/save to file and exit
-q       quit, discarding changes
-l       load a new configuration from disk (discarding changes)
+w       write/save to file 
+q       quit
+l       load a configuration from disk
 h       view this help screen
 """)
 
@@ -33,6 +41,18 @@ def hgrccli(ui, repo, **opts):
         " installed.\nIt can be found at http://code.google.com/p/iniparse/")
         exit(0)
     hgconfig(ui, repo)
+
+def setuser(ui, **opts):
+    path = util.user_rcpath()[0]
+    conf = SafeConfigParser()
+    conf.read(path)
+    name = ui.prompt(_("Full Name: "), "Alex Doe")
+    email = ui.prompt(_("Email: "), "")
+    email = " <%s>" % email if email else ""
+    conf.set('ui', 'username', "%s%s" % (name, email))
+    with open(path, 'wb') as cfg:
+        conf.write(cfg)
+    ui.status(_("User set in configuration at %s\n") % path)
 
 
 class hgconfig(object):
@@ -48,9 +68,7 @@ class hgconfig(object):
         self.reloadconf()
         self.printhelp()
         while True:
-            prompt = "(a, r, v, l, w, q, h)"
-            prompt += "*>>>" if self._dirty else ">>>"
-            index = self._ui.promptchoice(_(prompt),
+            index = self._ui.promptchoice(self.getPrompt(),
             _options, len(_options) - 1) # default to 'help'
             [self.modsection,
             self.delsection,
@@ -72,8 +90,8 @@ class hgconfig(object):
         if path not in self._paths and self._ui.promptchoice(_("No %(a)s "+
         "configuration found at %(b)s.\nWould you like to create one [y n]?") %
             {'a': pathtype, 'b': path}, ['&no', '&yes'], 1):
-                with open(path, "wb") as _c:
-                    pass
+                with open(path, "wb") as _empty:
+                    pass # Create an empty file for later editing
                 self._paths.append(path)
 
     def modsection(self):
@@ -92,10 +110,10 @@ class hgconfig(object):
         self._dirty = True
 
     def delsection(self):
-        self._ui.status(_("Delete an entire (s)ection or a single (p)roperty \
-         [(m) return to main menu]? \n"))
-        index = self._ui.promptchoice("(s, p, m)>>>",
-        ['&section', '&property', '&main'])
+        self._ui.status(_("Delete an entire (s)ection or a single (p)roperty"+
+        " [(m) return to main menu]? \n"))
+        index = self._ui.promptchoice(self.getPrompt(),
+        ['&section', '&property', '&main'], 2)
         if index == 2:
             return
         elif index:
@@ -132,13 +150,14 @@ class hgconfig(object):
         self._ui.status("%s\n" % confstr)
 
     def reloadconf(self):
+        if self.warndirty('load a new configuration'): return
         self._conf = SafeConfigParser()
         if len(self._paths) > 1:
             self._ui.status(_("\nSelect configuration to edit:\n"))
             for i in range(len(self._paths)):
                 print " " + str(i) + ".  " + self._paths[i]
-            index = self._ui.promptchoice(">",
-            map(lambda num: "&" + str(num), range(len(self._paths))),
+            index = self._ui.promptchoice(self.getPrompt(),
+            ["&" + str(num) for num in range(len(self._paths))],
             len(self._paths) - 1)
             self._path = self._paths[index]
         elif len(self._paths) == 1:
@@ -162,18 +181,29 @@ class hgconfig(object):
         with open(self._path, 'wb') as cfg:
             self._conf.write(cfg)
         self._ui.status(_("Configuration written to %s\n") % self._path)
-        exit(0)
+        self._dirty = False
 
     def exitext(self):
-        if self._dirty and self._ui.promptchoice("You have unsaved changes.\n"
-             "Really quit without saving [y n]?", ['&yes', '&no'], 1):
-             return
-        else: exit(0)
-
+        if self.warndirty('quit'): return
+        exit(0)
+        
+    def warndirty(self, action):
+        return self._dirty and self._ui.promptchoice("You have unsaved changes.\n"
+             "Really %s before saving [y n]?" % action, ['&yes', '&no'], 1)
+        
+        
     def printhelp(self):
         self._ui.status(_help)
+        
+    def getPrompt(self):
+        return "*>" if self._dirty else ">"
 
+commands.norepo += " setuser"
 cmdtable = {
-    "hgrc": (hgrccli,
+    "config": (hgrccli,
                      [],
-                     "hg hgrc")}
+                     "hg hgrc"),
+    "setuser": (setuser,
+                     [],
+                     "hg setuser"),
+                     }
