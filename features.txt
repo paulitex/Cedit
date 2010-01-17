@@ -13,8 +13,8 @@
 	=> Done
 	
 - identifiers for added / removed sections (+ for added, - for removed), a 'diff view'
-
 - Have interactive editor work without a repo
 - Have setuser work with a repo for setting project-specific users e.g. bitbucket logins
 - When selecting which file to edit annotate if it is known to be system-wide, user, or repository
 - Make it respond to verbose (particularly in reference to option-passing style)
+- Have iniparse be a subrepo

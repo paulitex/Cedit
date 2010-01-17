@@ -61,8 +61,6 @@ def hgrccli(ui, repo, *args, **opts):
 
 
 def setuser(ui, **opts):
-    print "OPTS"
-    print opts
     """
     Sets ui.username field in user's default Mercurial configuration.
     Username saved in format: First Last <email@address.com>.
