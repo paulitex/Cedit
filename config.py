@@ -2,16 +2,12 @@
 Command Line interactive editor for Mercurial configuration files.
 
 This extension adds two commands to Mercurial:
-1. hg config - command line and interactive editor for Mercurial configuration files
+1. hg confedit - command line and interactive editor for Mercurial configuration files
 2. hg setuser - covenience command line and interactive editor for 
 setting username and password in the default user configuration file.
 '''
 
-try:
-    from iniparse import SafeConfigParser
-    _noiniparse = False
-except Exception:
-    _noiniparse = True
+from iniparse import SafeConfigParser
 from mercurial.i18n import _
 from mercurial import commands, hg, util
 from ConfigParser import NoOptionError, NoSectionError
@@ -43,10 +39,6 @@ def hgrccli(ui, repo, *args, **opts):
     see http://www.selenic.com/mercurial/hgrc.5.html or 'man 5 hgrc'.
     Passing options will override the interactive editor. 
     """
-    if _noiniparse:
-        print("To use the hgrc editor extension you must have iniparse" +
-        " installed.\nIt can be found at http://code.google.com/p/iniparse/")
-        exit(0)
     if len(sys.argv) > 2:
         paths = []
         if opts['user']:
@@ -69,6 +61,8 @@ def hgrccli(ui, repo, *args, **opts):
 
 
 def setuser(ui, **opts):
+    print "OPTS"
+    print opts
     """
     Sets ui.username field in user's default Mercurial configuration.
     Username saved in format: First Last <email@address.com>.
@@ -120,8 +114,7 @@ def setoption(ui, paths, optstring):
             conf.set(sec, prop, val)
             with open(path, 'wb') as cfg:
                 conf.write(cfg)
-            ui.status(_("Property set in %s\n") % path)
-            
+            ui.status(_("Property set in %s\n") % path)           
 
 
 def deleteoption(ui, paths, delstring):
