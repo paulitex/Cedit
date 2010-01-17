@@ -2,8 +2,9 @@
 Command Line interactive editor for Mercurial configuration files.
 
 This extension adds two commands to Mercurial:
-1. hg confedit - command line and interactive editor for Mercurial configuration files
-2. hg setuser - covenience command line and interactive editor for 
+1. hg confedit - command line and interactive editor for
+Mercurial configuration files
+2. hg setuser - covenience command line and interactive editor for
 setting username and password in the default user configuration file.
 '''
 
@@ -11,21 +12,23 @@ from iniparse import SafeConfigParser
 from mercurial.i18n import _
 from mercurial import commands, hg, util
 from ConfigParser import NoOptionError, NoSectionError
-import os, sys
+import os
+import sys
 import re
 
 _options = ['&add', '&delete', '&view', 're&load', '&write', '&quit', '&help']
 _help =_("""
 Mercurial configuration editor extension.
 
-A '*' before the prompt denotes the file has been modified since last saving.
-See http://www.selenic.com/mercurial/hgrc.5.html or 'man 5 hgrc' for more information.
+A '*' before the prompt denotes unsaved changes. See 
+http://www.selenic.com/mercurial/hgrc.5.html or 'man 5 hgrc' 
+for more information on configuration files.
 
 Commands:
 a       add to or modify your configuration
 d       delete/remove a section or property from your configuration
 v       view current configuration, including changes
-w       write/save to file 
+w       write/save to file
 q       quit
 l       load a configuration from disk
 h       view this help screen
@@ -35,9 +38,9 @@ h       view this help screen
 def hgrccli(ui, repo, *args, **opts):
     """
     Edit mercurial configuration.
-    For more information on configuration files, 
+    For more information on configuration files,
     see http://www.selenic.com/mercurial/hgrc.5.html or 'man 5 hgrc'.
-    Passing options will override the interactive editor. 
+    Passing options will override the interactive editor.
     """
     if len(sys.argv) > 2:
         paths = []
@@ -52,8 +55,8 @@ def hgrccli(ui, repo, *args, **opts):
         if not paths:
             ui.warn(_('No configuration selected (nothing written).\n'))
             exit(0)
-        if opts['set']:
-            setoption(ui, paths, opts['set'])
+        if opts['add']:
+            setoption(ui, paths, opts['add'])
         if opts['delete']:
             deleteoption(ui, paths, opts['delete'])
     else:
@@ -70,7 +73,7 @@ def setuser(ui, **opts):
     path = util.user_rcpath()[0]
     conf = SafeConfigParser()
     conf.read(path)
-   
+
     if opts['username']:
         username = opts['username']
     else:
@@ -98,7 +101,7 @@ def setoption(ui, paths, optstring):
     Creates files, sections, and properties as needed.
     """
     match = re.search("^([\w\-<>]+)\.([\w\-<>]+)\s+=\s+([^\s].*)", optstring)
-    if not match: 
+    if not match:
         ui.warn(_("Invalid set property syntax. See 'hg help confedit'.\n"))
     else:
         sec = match.group(1)
@@ -112,7 +115,7 @@ def setoption(ui, paths, optstring):
             conf.set(sec, prop, val)
             with open(path, 'wb') as cfg:
                 conf.write(cfg)
-            ui.status(_("Property set in %s\n") % path)           
+            ui.status(_("Property set in %s\n") % path)
 
 
 def deleteoption(ui, paths, delstring):
@@ -151,9 +154,11 @@ def deleteoption(ui, paths, delstring):
                         conf.write(cfg)
                     ui.status(_("%s removed from %s\n") % (delstring, path))
                 else:
-                    ui.warn(_("Unable to remove %s from %s\n") % (delstring, path))
+                    ui.warn(_("Unable to remove %s from %s\n") %
+                    (delstring, path))
     else:
         ui.warn(_("Invalid delete syntax. See 'hg help confedit'.\n"))
+
 
 class hgconfig(object):
     _dirty = False
@@ -190,9 +195,9 @@ class hgconfig(object):
         if path not in self._paths and self._ui.promptchoice(_("No %(a)s "+
         "configuration found at %(b)s.\nWould you like to create one [y n]?") %
             {'a': pathtype, 'b': path}, ['&no', '&yes'], 1):
-                with open(path, "wb") as _empty:
-                    pass # Create an empty file for later editing
-                self._paths.append(path)
+            with open(path, "wb") as _empty:
+                pass # Create an empty file for later editing
+            self._paths.append(path)
 
     def modsection(self):
         """Adds or modifies sections and properties to current configuration"""
@@ -250,7 +255,8 @@ class hgconfig(object):
         self._ui.status("%s\n" % confstr)
 
     def reloadconf(self):
-        if self.warnflush('load a new configuration'): return
+        if self.warnflush('load a new configuration'):
+            return
         self._conf = SafeConfigParser()
         if len(self._paths) > 1:
             self._ui.status(_("\nSelect configuration to edit:\n"))
@@ -284,35 +290,41 @@ class hgconfig(object):
         self._dirty = False
 
     def exitext(self):
-        if self.warnflush('quit'): return
+        if self.warnflush('quit'):
+            return
         exit(0)
-        
+
     def warnflush(self, action):
-        return self._dirty and self._ui.promptchoice("You have unsaved changes.\n"
-             "Really %s before saving [y n]?" % action, ['&yes', '&no'], 1)
-        
+        return self._dirty and self._ui.promptchoice("You have unsaved "
+             "changes.\nReally %s before saving [y n]?" % action,
+             ['&yes', '&no'], 1)
+
     def printhelp(self):
         self._ui.status(_help)
-        
+
     def getPrompt(self):
         return "*>" if self._dirty else ">"
 
 commands.norepo += " setuser"
 cmdtable = {
     "confedit": (hgrccli,
-                [('s', 'set', '', _("Set configuration property. Takes a string" +
-                 " with format: '<section>.<property> = <value>'")),
+                [('a', 'add', '', _("Add/Set configuration property. Takes " +
+                 "a string with format: '<section>.<property> = <value>'")),
                   ('d', 'delete', '', _("Delete from configuration. Pass" +
                   " section's name to remove entire section or " +
-                  "'<section>.<prop>' to remove a single property" )),
+                  "'<section>.<prop>' to remove a single property")),
                  ('u', 'user', False, _('target user configuration')),
-                 ('g', 'global', False, _('target global/system-wide configuration')),
-                   ('l', 'local', False, _("target current repository's configuration")),
-                   ('f', 'file', '', _("target configuration file at given path. "))],
+                 ('g', 'global', False, _("target global/system-wide " +
+                 "configuration")),
+                   ('l', 'local', False, _("target current repository's "+
+                   "configuration")),
+                   ('f', 'file', '', _("target configuration file at "+
+                   "given path. "))],
                      "hg confedit [OPTIONS]"),
     "setuser": (setuser,
                 [('n', 'name', '', _('full name')),
                   ('e', 'email', '', _('email address')),
-                  ('u', 'username', '', _('username (overrides other options)'))],
+                  ('u', 'username', '',
+                   _('username (overrides other options)'))],
                      "hg setuser [OPTIONS]"),
                      }
