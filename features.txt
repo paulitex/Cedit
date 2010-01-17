@@ -9,9 +9,11 @@
 - Another command for first time users that just sets up the user name and password
 	=> Done
 	-> "hg setuser?" perhaps
-	
+- Have it usable from the command line
+	=> Done
 	
 - identifiers for added / removed sections (+ for added, - for removed), a 'diff view'
-- Have it usable from the command line
-- Comment the code better
+
+
 - When selecting which file to edit annotate if it is known to be system-wide, user, or repository
+- Make it respond to verbose (particularly in reference to option-passing style)
