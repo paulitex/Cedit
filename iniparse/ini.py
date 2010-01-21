@@ -491,8 +491,8 @@ class INIConfig(config.ConfigNamespace):
     def clean_format(self):
         ''' 
         this functions makes the configuration look
-        clean and handwritten - and two instances of EmptyLines are removed,
-        and one is added to the end
+        clean and handwritten - two consecutive EmptyLines are removed,
+        and one is guaranteed to be at the end of the file
         '''
         cont = self._data.contents
         if (len(cont) > 2):

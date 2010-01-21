@@ -194,7 +194,9 @@ class hgconfig(object):
         util.rcpath().append(rpath)
         self._paths = [f for f in util.rcpath() if os.path.isfile(f)]
         self.checkpath(userpath, "user")
-        self.checkpath(rpath, "repository")
+        if os.path.exists(os.path.join(os.getcwd(), ".hg")):
+            # is there a local repository?
+            self.checkpath(rpath, "repository")
 
     def checkpath(self, path, pathtype):
         if path not in self._paths and self._ui.promptchoice(_("No %(a)s "+
