@@ -240,6 +240,9 @@ class LineContainer(object):
         else:
             return '\n'.join([('%s' % x.value) for x in self.contents
                               if not isinstance(x, CommentLine)])
+                              
+    def add_empty(self):
+        self.add(EmptyLine())
 
     def set_value(self, data):
         self.orgvalue = data
@@ -484,12 +487,30 @@ class INIConfig(config.ConfigNamespace):
                 if x.name not in d:
                     yield x.name
                     d.add(x.name)
+                    
+    def clean_format(self):
+        ''' 
+        this functions makes the configuration look
+        clean and handwritten - and two instances of EmptyLines are removed,
+        and one is added to the end
+        '''
+        cont = self._data.contents
+        if (len(cont) > 2):
+            for i in range(1, len(cont)):
+                if i > len(cont)-1:
+                    break
+                if isinstance(cont[i-1], EmptyLine) and isinstance(cont[i], EmptyLine):
+                    cont.remove(cont[i])
+        if cont and not isinstance(cont[len(cont) - 1], EmptyLine):
+            self._data.add(EmptyLine())
+    
 
     def _new_namespace(self, name):
         if self._data.contents:
             self._data.add(EmptyLine())
         obj = LineContainer(SectionLine(name))
         self._data.add(obj)
+        self._data.add(EmptyLine())
         if self._sectionxform: name = self._sectionxform(name)
         if name in self._sections:
             ns = self._sections[name]

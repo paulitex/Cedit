@@ -35,7 +35,7 @@ h       view this help screen
 """)
 
 
-def hgrccli(ui, repo, *args, **opts):
+def hgrccli(ui, **opts):
     """
     Edit mercurial configuration.
     For more information on configuration files,
@@ -49,7 +49,7 @@ def hgrccli(ui, repo, *args, **opts):
         if opts['global']:
             paths.extend(util.system_rcpath())
         if opts['local']:
-            paths.append(repo.join('hgrc'))
+            paths.append(repopath())
         if opts['file']:
             paths.append(opts['file'])
         if not paths:
@@ -60,7 +60,7 @@ def hgrccli(ui, repo, *args, **opts):
         if opts['delete']:
             deleteoption(ui, paths, opts['delete'])
     else:
-        hgconfig(ui, repo)
+        hgconfig(ui)
 
 
 def setuser(ui, **opts):
@@ -160,6 +160,11 @@ def deleteoption(ui, paths, delstring):
         ui.warn(_("Invalid delete syntax. See 'hg help confedit'.\n"))
 
 
+def repopath():
+    cwd = os.getcwd()
+    return os.path.join(cwd, ".hg", "hgrc")
+
+
 class hgconfig(object):
     _dirty = False
     _ui = None
@@ -167,9 +172,9 @@ class hgconfig(object):
     _path = ""
     _paths = []
 
-    def __init__(self, ui, repo):
+    def __init__(self, ui):
         self._ui = ui
-        self.setpaths(repo)
+        self.setpaths()
         self.reloadconf()
         self.printhelp()
         while True:
@@ -183,13 +188,13 @@ class hgconfig(object):
             self.exitext,
             self.printhelp][index]()
 
-    def setpaths(self, repo):
+    def setpaths(self):
         userpath = util.user_rcpath()[0]
-        repopath = repo.join('hgrc')
-        util.rcpath().append(repopath)
+        rpath =  repopath()
+        util.rcpath().append(rpath)
         self._paths = [f for f in util.rcpath() if os.path.isfile(f)]
         self.checkpath(userpath, "user")
-        self.checkpath(repopath, "repository")
+        self.checkpath(rpath, "repository")
 
     def checkpath(self, path, pathtype):
         if path not in self._paths and self._ui.promptchoice(_("No %(a)s "+
@@ -211,6 +216,7 @@ class hgconfig(object):
             old_val = ": "
         val = self._ui.prompt(_("Enter property value %s") % old_val, "")
         self._conf.set(sec, prop, val)
+        self._conf.data.clean_format()
         self._ui.status(_("Value set\n"))
         self._dirty = True
 
@@ -280,6 +286,7 @@ class hgconfig(object):
                 exit(0)
             open(default, "ab")
         self._conf.read((self._path))
+        self._conf.data.clean_format()
         self._dirty = False
         self._ui.status(_("Configuration loaded.\n"))
 
@@ -305,7 +312,7 @@ class hgconfig(object):
     def getPrompt(self):
         return "*>" if self._dirty else ">"
 
-commands.norepo += " setuser"
+commands.norepo += " setuser confedit"
 cmdtable = {
     "confedit": (hgrccli,
                 [('a', 'add', '', _("Add/Set configuration property. Takes " +
