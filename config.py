@@ -8,7 +8,10 @@ Mercurial configuration files
 setting username and password in the default user configuration file.
 '''
 
-from hginiparse import SafeConfigParser
+from mercurial import demandimport
+demandimport.enable()
+
+from iniparse import SafeConfigParser
 from mercurial.i18n import _
 from mercurial import commands, hg, util
 from ConfigParser import NoOptionError, NoSectionError

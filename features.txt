@@ -23,3 +23,17 @@
 - Add tests
 - Should be able to detect and edit hgrcs set in HGRCPATH environment variable.
 - Add documentation for how to install, example runs (in help screen)
+- "python script that will use iniparse directly to add the correct line to the conf file 
+to enable your extension. A way to bootstrap for new users."
+
+"<bmp> paulitex: Can you make subcases for the things left and estimate them?
+ <paulitex> definitely
+ <bmp> If you estimate each task, your estimate's more likely to be useful, and by enumerating what's left, you'll give me a better idea what you're working on during periods when there aren't a lot of commits.
+ <bmp> Awesome.
+ <paulitex> most are already in the repo very informally in my 'features.txt' file
+ <paulitex> ok
+ <paulitex> will do that
+ <bmp> *If* you do that and get diligent about it, and *if* you use the "Working On" menu in FoGBugz, it'll actually tell you when you're going to ship. (Reports -> Mercurial Improvements)
+ <bmp> Which uses a monte carlo simulation, if you're into that kind of thing.
+ <bmp> Entirely optional, but it might be helpful for you.
+"
