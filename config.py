@@ -8,12 +8,9 @@ Mercurial configuration files
 setting username and password in the default user configuration file.
 '''
 
-from mercurial import demandimport
-demandimport.enable()
-
 from iniparse import SafeConfigParser
 from mercurial.i18n import _
-from mercurial import commands, hg, util
+from mercurial import commands, hg, util, error
 from ConfigParser import NoOptionError, NoSectionError
 import os
 import sys
@@ -46,15 +43,23 @@ def hgrccli(ui, **opts):
     Passing options will override the interactive editor.
     """
     if len(sys.argv) > 2:
+        
         paths = []
         if opts['user']:
             paths.extend(util.user_rcpath())
         if opts['global']:
             paths.extend(util.system_rcpath())
         if opts['local']:
-            paths.append(repopath())
+            paths.append(repoconfpath())
         if opts['file']:
             paths.append(opts['file'])
+        if opts['env']:
+            if 'HGRCPATH' in os.environ:
+                paths.extens(os.environ['HGRCPATH'].split(os.pathsep)[0])
+            else:
+                ui.warn(_("No HGRCPATH in environment, unable to write to environment configuration.\n"))
+        paths = verifypaths(paths)
+        [f for f in paths if os.path.isfile(f)]
         if not paths:
             ui.warn(_('No configuration selected (nothing written).\n'))
             exit(0)
@@ -68,15 +73,24 @@ def hgrccli(ui, **opts):
 
 def setuser(ui, **opts):
     """
-    Sets ui.username field in user's default Mercurial configuration.
+    Sets ui.username field in user's Mercurial configuration.
     Username saved in format: First Last <email@address.com>.
     If a -u option is passed, it overrides and
     username will be set to given string.
     """
-    path = util.user_rcpath()[0]
+    if opts['local']:
+        if not existslocalrepo():
+            raise error.RepoLookupError(_("No local repository found"))
+        path = repoconfpath()
+    elif 'HGRCPATH' in os.environ:
+        path = os.environ['HGRCPATH'].split(os.pathsep)[0]
+    else:
+        path = util.user_rcpath()[0]
+    if not os.path.exists(path):
+        with open(path, "wb") as _empty:
+            pass # create empty file
     conf = SafeConfigParser()
     conf.read(path)
-
     if opts['username']:
         username = opts['username']
     else:
@@ -93,8 +107,7 @@ def setuser(ui, **opts):
     if 'ui' not in conf.sections():
         conf.add_section('ui')
     conf.set('ui', 'username', username)
-    with open(path, 'wb') as cfg:
-        conf.write(cfg)
+    savepretty(conf, path)
     ui.status(_("Username saved in %s\n") % path)
 
 
@@ -103,9 +116,9 @@ def setoption(ui, paths, optstring):
     Sets option given in optionstring in every path given in paths.
     Creates files, sections, and properties as needed.
     """
-    match = re.search("^([\w\-<>]+)\.([\w\-<>]+)\s+=\s+([^\s].*)", optstring)
+    match = re.search("^([\w\-<>]+)\.([\w\-<>]+)\s*=\s*([^\s].*)", optstring)
     if not match:
-        ui.warn(_("Invalid set property syntax. See 'hg help confedit'.\n"))
+        ui.warn(_("Invalid add property syntax. See 'hg help confedit'.\n"))
     else:
         sec = match.group(1)
         prop = match.group(2)
@@ -116,8 +129,7 @@ def setoption(ui, paths, optstring):
             if sec not in conf.sections():
                 conf.add_section(sec)
             conf.set(sec, prop, val)
-            with open(path, 'wb') as cfg:
-                conf.write(cfg)
+            savepretty(conf, path)
             ui.status(_("Property set in %s\n") % path)
 
 
@@ -136,11 +148,10 @@ def deleteoption(ui, paths, delstring):
             conf = SafeConfigParser()
             conf.read(path)
             if sec not in conf.sections():
-                ui.warn(_("No section '%s' in %s\n") % (sec, path))
+                ui.status(_("Success: No section '%s' in %s, so it's already gone.\n") % (sec, path))
             else:
                 conf.remove_section(sec)
-                with open(path, 'wb') as cfg:
-                    conf.write(cfg)
+                savepretty(conf, path)
                 ui.status(_("Section removed from %s\n") % path)
     elif propmatch:
         sec = propmatch.group(1)
@@ -149,12 +160,13 @@ def deleteoption(ui, paths, delstring):
             conf = SafeConfigParser()
             conf.read(path)
             if sec not in conf.sections():
-                ui.warn(_("No %s section in %s") % (sec, path))
+                ui.status(_("Success: No section '%s' in %s, so it's already gone.\n") % (sec, path))
+            elif not conf.has_option(sec, prop):
+                ui.warn(_("Success: No property '%s' in %s, so it's already gone.\n") % (prop, path))
             else:
                 removed = conf.remove_option(sec, prop)
                 if removed:
-                    with open(path, 'wb') as cfg:
-                        conf.write(cfg)
+                    savepretty(conf, path)
                     ui.status(_("%s removed from %s\n") % (delstring, path))
                 else:
                     ui.warn(_("Unable to remove %s from %s\n") %
@@ -162,11 +174,21 @@ def deleteoption(ui, paths, delstring):
     else:
         ui.warn(_("Invalid delete syntax. See 'hg help confedit'.\n"))
 
+def verifypaths(paths):
+    paths = list(set(paths)) #eliminate duplicates
+    return [os.path.abspath(f) for f in paths if os.path.isfile(f)]
 
-def repopath():
+def savepretty(conf, path):
+    conf.data.clean_format()
+    with open(path, 'wb') as cfg:
+        conf.write(cfg)
+
+def repoconfpath():
     cwd = os.getcwd()
     return os.path.join(cwd, ".hg", "hgrc")
 
+def existslocalrepo():
+    return os.path.exists(os.path.join(os.getcwd(), ".hg"))
 
 class hgconfig(object):
     _dirty = False
@@ -192,18 +214,16 @@ class hgconfig(object):
             self.printhelp][index]()
 
     def setpaths(self):
-        userpath = util.user_rcpath()[0]
-        rpath =  repopath()
-        util.rcpath().append(rpath)
-        self._paths = [f for f in util.rcpath() if os.path.isfile(f)]
-        self.checkpath(userpath, "user")
-        if os.path.exists(os.path.join(os.getcwd(), ".hg")):
-            # is there a local repository?
-            self.checkpath(rpath, "repository")
+        paths = util.rcpath()
+        paths.extend(util.os_rcpath())
+        paths.append(repoconfpath())
+        self._paths = verifypaths(paths)
+        if existslocalrepo():
+            self.checkpath(repoconfpath(), "repository")
 
     def checkpath(self, path, pathtype):
         if path not in self._paths and self._ui.promptchoice(_("No %(a)s "+
-        "configuration found at %(b)s.\nWould you like to create one [y n]?") %
+        "configuration found. Would you like to create one (at %(b)s) [y n]?") %
             {'a': pathtype, 'b': path}, ['&no', '&yes'], 1):
             with open(path, "wb") as _empty:
                 pass # Create an empty file for later editing
@@ -260,6 +280,7 @@ class hgconfig(object):
                 self._ui.warn(_("Unable to remove section '%s'\n") % sec)
 
     def viewconf(self):
+        self._ui.status("(Location: %s)\n\n" % self._path)
         confstr = str(self._conf.data)
         if not confstr:
             self._ui.status(_("(Empty configuration)"))
@@ -272,7 +293,7 @@ class hgconfig(object):
         if len(self._paths) > 1:
             self._ui.status(_("\nSelect configuration to edit:\n"))
             for i in range(len(self._paths)):
-                print " " + str(i) + ".  " + self._paths[i]
+                print " " + str(i) + ".  " + self.annotatepathtype(self._paths[i])
             index = self._ui.promptchoice(self.getPrompt(),
             ["&" + str(num) for num in range(len(self._paths))],
             len(self._paths) - 1)
@@ -293,7 +314,7 @@ class hgconfig(object):
         self._conf.read((self._path))
         self._conf.data.clean_format()
         self._dirty = False
-        self._ui.status(_("Configuration loaded.\n"))
+        self._ui.status(_("Configuration at '%s' loaded.\n") % self._path)
 
     def writeconf(self):
         with open(self._path, 'wb') as cfg:
@@ -310,6 +331,20 @@ class hgconfig(object):
         return self._dirty and self._ui.promptchoice("You have unsaved "
              "changes.\nReally %s before saving [y n]?" % action,
              ['&yes', '&no'], 1)
+    
+    def annotatepathtype(self, path):
+        pathtype = "[other]"
+        if path == repoconfpath():
+             pathtype = "[repository]"
+        if path in util.user_rcpath():
+            pathtype = "[user]"
+        elif path in util.system_rcpath():
+            pathtype = "[system-wide]"
+        elif 'HGRCPATH' in os.environ:
+            if path in os.environ['HGRCPATH'].split(os.pathsep):
+                pathtype = "[environment]"
+        return "%s\t%s" % (path, pathtype)
+        
 
     def printhelp(self):
         self._ui.status(_help)
@@ -325,6 +360,7 @@ cmdtable = {
                   ('d', 'delete', '', _("Delete from configuration. Pass" +
                   " section's name to remove entire section or " +
                   "'<section>.<prop>' to remove a single property")),
+                  ('e', 'env', False, _('target first path defined in HGRCPATH')),
                  ('u', 'user', False, _('target user configuration')),
                  ('g', 'global', False, _("target global/system-wide " +
                  "configuration")),
@@ -337,6 +373,8 @@ cmdtable = {
                 [('n', 'name', '', _('full name')),
                   ('e', 'email', '', _('email address')),
                   ('u', 'username', '',
-                   _('username (overrides other options)'))],
+                   _('username (overrides other options)')),
+                   ('l', 'local', False, _("target current repository's "+
+                      "configuration"))],
                      "hg setuser [OPTIONS]"),
                      }

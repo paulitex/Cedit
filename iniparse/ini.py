@@ -495,11 +495,11 @@ class INIConfig(config.ConfigNamespace):
         and one is guaranteed to be at the end of the file
         '''
         cont = self._data.contents
-        if (len(cont) > 2):
+        if (len(cont) > 1):
             for i in range(1, len(cont)):
                 if i > len(cont)-1:
                     break
-                if isinstance(cont[i-1], EmptyLine) and isinstance(cont[i], EmptyLine):
+                while isinstance(cont[i-1], EmptyLine) and isinstance(cont[i], EmptyLine):
                     cont.remove(cont[i])
         if cont and not isinstance(cont[len(cont) - 1], EmptyLine):
             self._data.add(EmptyLine())
