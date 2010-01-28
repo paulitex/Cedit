@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
 """
-This script exists to boostrap the configuration editor. 
+This script exists to boostrap the configuration editor.
 
 It creates a user configuration file, if one is not already present,
-and adds this extension's current path to the configuration. If there is 
+and adds this extension's current path to the configuration. If there is
 already a configuration file with a 'config' extension, it will be overwritten.
 """
 import os
@@ -19,6 +19,7 @@ import config
 
 section = "extensions"
 
+
 def getrcpath():
     if 'HGRCPATH' in os.environ:
         path = os.environ['HGRCPATH'].split(os.pathsep)[0]
@@ -29,14 +30,16 @@ def getrcpath():
             pass # create empty file
     return path
 
+
 def getconfig(path):
     conf = SafeConfigParser()
     conf.read(path)
     if section not in conf.sections():
         conf.add_section(section)
     return conf
-    
-def writeconfig(path):
+
+
+def writeconfig(conf, path):
     # find out where we are...
     thispath = os.path.abspath(os.path.dirname(__file__))
     conf.set(section, "config", thispath)
@@ -45,7 +48,7 @@ def writeconfig(path):
 # Start script...
 rcpath = getrcpath()
 conf = getconfig(rcpath)
-writeconfig(rcpath)
+writeconfig(conf, rcpath)
 print _("Confedit succesfully added to %s") % rcpath
 print _("If you just installed Mercurial, run \"hg setuser\"" +
 "to set up your personal info.")

@@ -501,6 +501,8 @@ class INIConfig(config.ConfigNamespace):
                     break
                 while isinstance(cont[i-1], EmptyLine) and isinstance(cont[i], EmptyLine):
                     cont.remove(cont[i])
+                    if i > len(cont)-1:
+                        break
         if cont and not isinstance(cont[len(cont) - 1], EmptyLine):
             self._data.add(EmptyLine())
     
