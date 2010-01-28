@@ -1,8 +1,15 @@
+# config.py - cedit, a Mercurial configuration editor extension.
+# 
+# Copyright 2010 Paul Lambert <paul@matygo.com>
+#
+# This software may be used and distributed according to the terms of the
+# GNU General Public License version 2, incorporated herein by reference.
+
 '''
-Command Line interactive editor for Mercurial configuration files.
+Command Line editor for Mercurial configuration files.
 
 This extension adds two commands to Mercurial:
-1. hg confedit - command line and interactive editor for
+1. hg cedit - command line and interactive editor for
 Mercurial configuration files
 2. hg setuser - covenience command line and interactive editor for
 setting username and password in the default user configuration file.
@@ -37,10 +44,34 @@ h       view this help screen
 
 def hgrccli(ui, **opts):
     """
-    Edit mercurial configuration.
+    Edit mercurial configuration files. Takes a string to add or remove
+    from a configuration and a set of targets. For most
+    configuration the user-wide file will be targeted, this is 
+    done with the '-u' flag. 
+    
+    If no options are given, an interactive editor is launched. 
+    
+    Examples:
+    
+    hg cedit -a "alias.latest = log --limit 5" -u
+    (Adds 'latest = log --limit 5' to the [alias] section of your default
+     user configuration file)
+    
+    hg cedit -a "extensions.color=" -l -e
+    (Adds 'color = ' to the [extensions] section in the config files for your
+     current repsitory and the last path defined in your HGRCPATH environmnent 
+     variable.)
+    
+    hg cedit -d "extensions.color" -g 
+    (Removes the color property from the extensions section of your global
+     (system-wide) config file) 
+     
+    hg cedit -d "extensions" -l -f "~/foo/bar.rc"
+    (Removes the entire [extensions] section from your current repository's config
+     and the configuation located at ~/foo/bar.rc)
+    
     For more information on configuration files,
     see http://www.selenic.com/mercurial/hgrc.5.html or 'man 5 hgrc'.
-    Passing options will override the interactive editor.
     """
     if len(sys.argv) > 2:
         paths = []
@@ -51,7 +82,7 @@ def hgrccli(ui, **opts):
         if opts['local']:
             paths.append(defaultpath("local", ui))
         if opts['file']:
-            paths.append(opts['file'])
+            paths.append(defaultpath("file", ui, opts['file']))
         if opts['env']:
             if 'HGRCPATH' in os.environ:
                 paths.append(defaultpath("env", ui))
@@ -71,10 +102,23 @@ def hgrccli(ui, **opts):
 
 def setuser(ui, **opts):
     """
-    Sets ui.username field in user's Mercurial configuration.
+    Sets ui.username field in Mercurial configuration.
     Username saved in format: First Last <email@address.com>.
     If a -u option is passed, it overrides and
     username will be set to given string.
+    
+    Examples:
+    
+    hg setuser
+    (Launches interactive editor to set username and password in default
+     user configurationg file)
+     
+    hg setuser -n "Jerry Garcia" -e "jerry@bitbucket.org" -l 
+    (Sets username for the current local repository as
+     'Jerry Garcia <jerry@bitbucket.org>')
+    
+    hg setuser -u "Paul Ringo John and George"
+    (Sets default username to 'Paul Ringo John and George'.)
     """
     if opts['local']:
         if not existslocalrepo():
@@ -114,9 +158,9 @@ def setoption(ui, paths, optstring):
     Sets option given in optionstring in every path given in paths.
     Creates files, sections, and properties as needed.
     """
-    match = re.search("^([\w\-<>]+)\.([\w\-<>]+)\s*=\s*([^\s].*)", optstring)
+    match = re.search("^([\w\-<>]+)\.([\w\-<>]+)\s*=\s*(.*)", optstring)
     if not match:
-        ui.warn(_("Invalid add property syntax. See 'hg help confedit'.\n"))
+        ui.warn(_("Invalid add property syntax. See 'hg help cedit'.\n"))
     else:
         sec = match.group(1)
         prop = match.group(2)
@@ -173,7 +217,7 @@ def deleteoption(ui, paths, delstring):
                     ui.warn(_("Unable to remove %s from %s\n") %
                     (delstring, path))
     else:
-        ui.warn(_("Invalid delete syntax. See 'hg help confedit'.\n"))
+        ui.warn(_("Invalid delete syntax. See 'hg help cedit'.\n"))
 
 
 def verifypaths(paths):
@@ -196,12 +240,11 @@ def existslocalrepo():
     return os.path.exists(os.path.join(os.getcwd(), ".hg"))
 
 
-def defaultpath(pathtype, ui):
+def defaultpath(pathtype, ui, path = ""):
     """
     This functions assume the last path given for
     each type of hgrc is the default.
     """
-    path = ""
     if pathtype == "user":
         paths = util.user_rcpath()
         path = os.path.abspath(paths[len(paths)-1])
@@ -213,6 +256,8 @@ def defaultpath(pathtype, ui):
         path = os.path.abspath(paths[len(paths)-1])
     elif pathtype == "local":
         path = repoconfpath()
+    elif pathtype == "file":
+         path = os.path.abspath(path)
     else:
         raise "Invalid Path Type"
     if not os.path.isfile(path):
@@ -382,9 +427,9 @@ class hgconfig(object):
     def getPrompt(self):
         return "*>" if self._dirty else ">"
 
-commands.norepo += " setuser confedit"
+commands.norepo += " setuser cedit"
 cmdtable = {
-    "confedit": (hgrccli,
+    "cedit": (hgrccli,
                 [('a', 'add', '', _("Add/Set configuration property. Takes " +
                  "a string with format: '<section>.<property> = <value>'")),
                   ('d', 'delete', '', _("Delete from configuration. Pass" +
@@ -398,7 +443,7 @@ cmdtable = {
                    "configuration")),
                    ('f', 'file', '', _("target configuration file at "+
                    "given path. "))],
-                     "hg confedit [OPTIONS]"),
+                     "hg cedit [OPTIONS]"),
     "setuser": (setuser,
                 [('n', 'name', '', _('full name')),
                   ('e', 'email', '', _('email address')),

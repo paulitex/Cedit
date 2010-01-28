@@ -1,7 +1,16 @@
 #!/usr/bin/env python
+#
+# start.py - Bootstrapping script for cedit. Gets config.py as an extension
+# in the user's default hgrc. This means that new users never have to
+# edit a configuration file by hand, if they so choose.
+#
+# Copyright 2010 Paul Lambert <paul@matygo.com>
+#
+# This software may be used and distributed according to the terms of the
+# GNU General Public License version 2, incorporated herein by reference.
 
 """
-This script exists to boostrap the configuration editor.
+This script exists to boostrap the cedit Mercurial configuration editor.
 
 It creates a user configuration file, if one is not already present,
 and adds this extension's current path to the configuration. If there is
@@ -52,4 +61,4 @@ writeconfig(conf, rcpath)
 print _("Confedit succesfully added to %s") % rcpath
 print _("If you just installed Mercurial, run \"hg setuser\"" +
 "to set up your personal info.")
-print _("Run \"hg confedit\" to further customize your configuration.")
+print _("Run \"hg cedit\" to further customize your configuration.")
