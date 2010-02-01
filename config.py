@@ -240,8 +240,8 @@ def existslocalrepo():
     return os.path.exists(os.path.join(os.getcwd(), ".hg"))
 
 
-def checkexists(path, pathtype):
-    if not os.path.isfile(path) and self._ui.promptchoice(_("No %s "+
+def checkexists(path, pathtype, ui):
+    if not os.path.isfile(path) and ui.promptchoice(_("No %s "+
     "configuration found. Would you like to create one [y n]?")%
         (pathtype), ['&no', '&yes'], 1):
         with open(path, "wb") as _empty:
@@ -274,7 +274,7 @@ def defaultpath(pathtype, ui, path = ""):
          path = os.path.abspath(path)
     else:
         raise "Invalid Path Type"
-    checkexists(path, pathtype)
+    checkexists(path, pathtype, ui)
     return path
 
 
