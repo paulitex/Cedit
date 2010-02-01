@@ -242,8 +242,8 @@ def existslocalrepo():
 
 def checkexists(path, pathtype, ui):
     if not os.path.isfile(path) and ui.promptchoice(_("No %s "+
-    "configuration found. Would you like to create one [y n]?")%
-        (pathtype), ['&no', '&yes'], 1):
+    "configuration found at '%s'. Would you like to create this file [y n]?")%
+        (pathtype, path), ['&no', '&yes'], 1):
         with open(path, "wb") as _empty:
             pass # Create an empty file for later editing
 
@@ -274,7 +274,7 @@ def defaultpath(pathtype, ui, path = ""):
          path = os.path.abspath(path)
     else:
         raise "Invalid Path Type"
-    checkexists(path, pathtype, ui)
+    checkexists(path, "default %s" % pathtype, ui)
     return path
 
 
