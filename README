@@ -3,7 +3,7 @@ This will add the necessary line to your Mercurial configuration to enable this 
 
 If all goes well, you should be able to run "hg help cedit" and get started!
 
-For a quick tool to set up your initial name and email, run "hg setuser".
+To quickly set up your initial name and email, run "hg setuser".
 
 Note: If you are adding this extension by hand, be sure to give the containing folder
 as the path, not config.py. For example

@@ -58,7 +58,7 @@ def writeconfig(conf, path):
 rcpath = getrcpath()
 conf = getconfig(rcpath)
 writeconfig(conf, rcpath)
-print _("Confedit succesfully added to %s") % rcpath
+print _("cedit succesfully added to %s") % rcpath
 print _("If you just installed Mercurial, run \"hg setuser\"" +
 "to set up your personal info.")
 print _("Run \"hg cedit\" to further customize your configuration.")
