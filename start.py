@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 #
-# start.py - Bootstrapping script for cedit. Gets config.py as an extension
-# in the user's default hgrc. This means that new users never have to
-# edit a configuration file by hand, if they so choose.
+# start.py - Bootstrapping script for cedit. Installs cedit as an extension
+# in the user's default hgrc. This means that new users, using this script,
+# never have to edit a configuration file by hand, if they so choose.
 #
 # Copyright 2010 Paul Lambert <paul@matygo.com>
 #
@@ -14,7 +14,7 @@ This script exists to boostrap the cedit Mercurial configuration editor.
 
 It creates a user configuration file, if one is not already present,
 and adds this extension's current path to the configuration. If there is
-already a configuration file entry for a 'config' extension, it will be overwritten.
+already an entry for a 'config' extension, it will be overwritten.
 """
 
 from __future__ import with_statement

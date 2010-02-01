@@ -1,5 +1,5 @@
 # config.py - cedit, a Mercurial configuration editor extension.
-# 
+#
 # Copyright 2010 Paul Lambert <paul@matygo.com>
 #
 # This software may be used and distributed according to the terms of the
@@ -12,7 +12,7 @@ This extension adds two commands to Mercurial:
 1. hg cedit - command line and interactive editor for
 Mercurial configuration files
 2. hg setuser - covenience command line and interactive editor for
-setting username and password in the default user configuration file.
+setting a username.
 '''
 from __future__ import with_statement
 from iniparse import SafeConfigParser
@@ -23,53 +23,35 @@ import os
 import sys
 import re
 
-_options = ['&add', '&delete', '&view', 're&load', '&write', '&quit', '&help']
-_help =_("""
-Mercurial configuration editor extension.
-
-A '*' before the prompt denotes unsaved changes. See
-http://www.selenic.com/mercurial/hgrc.5.html or 'man 5 hgrc'
-for more information on configuration files.
-
-Commands:
-a       add to or modify your configuration
-d       delete/remove a section or property from your configuration
-v       view current configuration, including changes
-w       write/save to file
-q       quit
-l       load a configuration from disk
-h       view this help screen
-""")
-
 
 def hgrccli(ui, **opts):
     """
     Edit mercurial configuration files. Takes a string to add or remove
-    from a configuration and a set of targets. For most
-    configuration the user-wide file will be targeted, this is 
-    done with the '-u' flag. 
-    
-    If no options are given, an interactive editor is launched. 
-    
+    from a configuration and a set of targets.
+    Usually the user default file will be targeted, this is
+    done with the '-u' flag.
+
+    If no options are given, an interactive editor is launched.
+
     Examples:
-    
+
     hg cedit -a "alias.latest = log --limit 5" -u
     (Adds 'latest = log --limit 5' to the [alias] section of your default
      user configuration file)
-    
+
     hg cedit -a "extensions.color=" -l -e
     (Adds 'color = ' to the [extensions] section in the config files for your
-     current repsitory and the last path defined in your HGRCPATH environmnent 
+     current repository and the last path defined in your HGRCPATH environmnent
      variable.)
-    
-    hg cedit -d "extensions.color" -g 
+
+    hg cedit -d "extensions.color" -g
     (Removes the color property from the extensions section of your global
-     (system-wide) config file) 
-     
+     (system-wide) config file)
+
     hg cedit -d "extensions" -l -f "~/foo/bar.rc"
-    (Removes the entire [extensions] section from your current repository's config
-     and the configuation located at ~/foo/bar.rc)
-    
+    (Removes the entire [extensions] section from your current repository's
+     config and the configuation located at ~/foo/bar.rc)
+
     For more information on configuration files,
     see http://www.selenic.com/mercurial/hgrc.5.html or 'man 5 hgrc'.
     """
@@ -106,17 +88,17 @@ def setuser(ui, **opts):
     Username saved in format: First Last <email@address.com>.
     If a -u option is passed, it overrides and
     username will be set to given string.
-    
+
     Examples:
-    
+
     hg setuser
     (Launches interactive editor to set username and password in default
      user configurationg file)
-     
-    hg setuser -n "Jerry Garcia" -e "jerry@bitbucket.org" -l 
+
+    hg setuser -n "Jerry Garcia" -e "jerry@bitbucket.org" -l
     (Sets username for the current local repository as
      'Jerry Garcia <jerry@bitbucket.org>')
-    
+
     hg setuser -u "Paul Ringo John and George"
     (Sets default username to 'Paul Ringo John and George'.)
     """
@@ -155,7 +137,7 @@ def setuser(ui, **opts):
 
 def setoption(ui, paths, optstring):
     """
-    Sets option given in optionstring in every path given in paths.
+    Sets option given in optstring in every path given in paths.
     Creates files, sections, and properties as needed.
     """
     match = re.search("^([\w\-<>]+)\.([\w\-<>]+)\s*=\s*(.*)", optstring)
@@ -178,9 +160,9 @@ def setoption(ui, paths, optstring):
 def deleteoption(ui, paths, delstring):
     """
     Deletes property or section in delstring.
-    To delete an section, the delstring should simply be the section name.
-    To delete a property, the delstring should be qualified with the section,
-    e.g. ui.username
+    To delete a section, the delstring should simply be the section name.
+    To delete a property, the delstring should be the property qualified
+    with the section, e.g. ui.username
     """
     secmatch = re.search("^\s*([\w\-<>]+)\s*$", delstring)
     propmatch = re.search("^\s*([\w\-<>]+)\.([\w\-<>]+)\s*$", delstring)
@@ -206,7 +188,7 @@ def deleteoption(ui, paths, delstring):
                 ui.status(_("Success: No section '%s' in %s, "+
                 "so it's already gone.\n") % (sec, path))
             elif not conf.has_option(sec, prop):
-                ui.warn(_("Success: No property '%s' in %s, "+
+                ui.status(_("Success: No property '%s' in %s, "+
                 "so it's already gone.\n") % (prop, path))
             else:
                 removed = conf.remove_option(sec, prop)
@@ -219,6 +201,7 @@ def deleteoption(ui, paths, delstring):
     else:
         ui.warn(_("Invalid delete syntax. See 'hg help cedit'.\n"))
 
+# begin helper functions
 
 def verifypaths(paths):
     paths = list(set(paths)) #eliminate duplicates
@@ -249,10 +232,6 @@ def checkexists(path, pathtype, ui):
 
 
 def defaultpath(pathtype, ui, path = ""):
-    """
-    This functions assume the last path given for
-    each type of hgrc is the default.
-    """
     if pathtype == "user":
         paths = util.user_rcpath()
         path = os.path.abspath(paths[len(paths)-1])
@@ -271,7 +250,7 @@ def defaultpath(pathtype, ui, path = ""):
     elif pathtype == "local":
         path = repoconfpath()
     elif pathtype == "file":
-         path = os.path.abspath(path)
+        path = os.path.abspath(path)
     else:
         raise "Invalid Path Type"
     checkexists(path, "default %s" % pathtype, ui)
@@ -279,6 +258,27 @@ def defaultpath(pathtype, ui, path = ""):
 
 
 class hgconfig(object):
+    """
+    This class implements all of the logic for the interactive editor.
+    """
+    _opts = ['&add', '&delete', '&view', 're&load', '&write', '&quit', '&help']
+    _help =_(
+"""
+Mercurial configuration editor extension.
+
+A '*' before the prompt denotes unsaved changes. See
+http://www.selenic.com/mercurial/hgrc.5.html or 'man 5 hgrc'
+for more information on configuration files.
+
+Commands:
+a       add to or modify your configuration
+d       delete/remove a section or property from your configuration
+v       view current configuration, including changes
+w       write/save to file
+q       quit
+l       load a configuration from disk
+h       view this help screen
+""")
     _dirty = False
     _ui = None
     _conf = None
@@ -292,7 +292,7 @@ class hgconfig(object):
         self.printhelp()
         while True:
             index = self._ui.promptchoice(self.getPrompt(),
-            _options, len(_options) - 1) # default to 'help'
+            self._opts, len(self._opts) - 1) # default to 'help'
             [self.modsection,
             self.delsection,
             self.viewconf,
@@ -310,9 +310,9 @@ class hgconfig(object):
             self.checkpath(repoconfpath(), "repository")
 
     def checkpath(self, path, pathtype):
-        if path not in self._paths and self._ui.promptchoice(_("No %(a)s "+
-        "configuration found. Would you like to create one (at %(b)s) [y n]?")%
-            {'a': pathtype, 'b': path}, ['&no', '&yes'], 1):
+        if path not in self._paths and self._ui.promptchoice(_("No %s "+
+        "configuration found. Would you like to create one (at %s) [y n]?")%
+            (pathtype, path), ['&no', '&yes'], 1):
             with open(path, "wb") as _empty:
                 pass # Create an empty file for later editing
             self._paths.append(path)
@@ -394,7 +394,7 @@ class hgconfig(object):
             self._path = default = util.user_rcpath()[0]
             msg = _("Unable to find configuration file."
                     " Would you like to make one at %s?") % default
-            index = self._ui.promptchoice(msg, [_('&yes'), _('&no')], _('y'))
+            index = self._ui.promptchoice(msg, [_('&yes'), _('&no')], 0)
             if index == 1:
                 self._ui.status(_("No configuration to edit"))
                 sys.exit(0)
@@ -434,7 +434,7 @@ class hgconfig(object):
         return "%s\t%s" % (path, pathtype)
 
     def printhelp(self):
-        self._ui.status(_help)
+        self._ui.status(self._help)
 
     def getPrompt(self):
         return "*>" if self._dirty else ">"
