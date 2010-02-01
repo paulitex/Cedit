@@ -91,7 +91,7 @@ def hgrccli(ui, **opts):
         paths = verifypaths(paths)
         if not paths:
             ui.warn(_('No configuration selected (nothing written).\n'))
-            exit(0)
+            sys.exit(0)
         if opts['add']:
             setoption(ui, paths, opts['add'])
         if opts['delete']:
@@ -390,7 +390,7 @@ class hgconfig(object):
             index = self._ui.promptchoice(msg, [_('&yes'), _('&no')], _('y'))
             if index == 1:
                 self._ui.status(_("No configuration to edit"))
-                exit(0)
+                sys.exit(0)
             open(default, "ab")
         self._conf.read((self._path))
         self._conf.data.clean_format()
@@ -406,7 +406,7 @@ class hgconfig(object):
     def exitext(self):
         if self.warnflush('quit'):
             return
-        exit(0)
+        sys.exit(0)
 
     def warnflush(self, action):
         return self._dirty and self._ui.promptchoice("You have unsaved "
