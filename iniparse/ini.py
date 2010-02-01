@@ -159,8 +159,9 @@ class OptionLine(LineType):
 
 
 class CommentLine(LineType):
-    regex = re.compile(r'^(?P<csep>[;#]|[rR][eE][mM])'
-                       r'(?P<comment>.*)$')
+# Mercurial-safe comment line regex, as given by Steve Borho
+# bitbucket.org/tortoisehg/stable/src/tip/tortoisehg/hgtk/thgconfig.py#cl-1084
+    regex = re.compile(r'^(?P<csep>[%;#])(?P<comment>.*)$')
 
     def __init__(self, comment='', separator='#', line=None):
         super(CommentLine, self).__init__(line)
