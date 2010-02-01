@@ -14,9 +14,12 @@ This script exists to boostrap the cedit Mercurial configuration editor.
 
 It creates a user configuration file, if one is not already present,
 and adds this extension's current path to the configuration. If there is
-already a configuration file with a 'config' extension, it will be overwritten.
+already a configuration file entry for a 'config' extension, it will be overwritten.
 """
+
+from __future__ import with_statement
 import os
+
 try:
     from mercurial import util
     from mercurial.i18n import _

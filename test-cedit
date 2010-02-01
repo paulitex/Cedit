@@ -1,0 +1,15 @@
+#!/bin/bash   
+set -e
+
+#cedit test adding
+hg cedit -a "alias.latest = log --limit 5" -u -l -e
+
+#cedit test deleting 
+hg cedit -d "alias.latest" -l
+hg cedit -d "alias" -u 
+hg cedit -d "alias" -u -l -e
+
+#set user testing
+hg setuser -n "Paul" -e "paul@testing.com"
+hg setuser -u "Buffalo Bill's Wild Saloon" -l
+

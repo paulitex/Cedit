@@ -1,5 +1,0 @@
-#!/bin/sh
-
-set -e
-
-# hg cedit -a "alias.latest = log --limit 5" -u

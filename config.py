@@ -14,7 +14,7 @@ Mercurial configuration files
 2. hg setuser - covenience command line and interactive editor for
 setting username and password in the default user configuration file.
 '''
-
+from __future__ import with_statement
 from iniparse import SafeConfigParser
 from mercurial.i18n import _
 from mercurial import commands, hg, util, error
@@ -249,8 +249,13 @@ def defaultpath(pathtype, ui, path = ""):
         paths = util.user_rcpath()
         path = os.path.abspath(paths[len(paths)-1])
     elif pathtype == "global":
-        paths = util.system_rcpath()
-        path = os.path.abspath(paths[len(paths)-1])
+        if os.name == 'posix':
+            path = "/etc/mercurial/hgrc"
+        else:
+            ui.warn(_("Default system path only supported on"+
+            " POSIX-style systems. Please use '-f' instead to"+
+            " specify a file."))
+            path = "<Not Supported>"
     elif pathtype == "env":
         paths = os.environ['HGRCPATH'].split(os.pathsep)
         path = os.path.abspath(paths[len(paths)-1])
