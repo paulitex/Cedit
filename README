@@ -1,7 +1,18 @@
+CEDIT - a Mercurial configuration editor extension.
+
+Copyright 2010 Paul Lambert <paul@matygo.com>
+
+=LICENSE=
+
+This software may be used and distributed according to the terms of the
+GNU General Public License version 2, incorporated herein by reference.
+
+=INSTALLATION=
+
 To get started with this extension, please run "python start.py".
 This will add the necessary line to your Mercurial configuration to enable this extension.
 
-If all goes well, you should be able to run "hg help cedit" and get started!
+If all goes well, you should be able to run "hg help cedit" and get started.
 
 To quickly set up your initial name and email, run "hg setuser".
 
@@ -18,3 +29,7 @@ config = /foo/bar/hgext/cedit/config.py
 
 This is to ensure that the included version of iniparse is loaded at the
 same time as this extension. 
+
+=USAGE=
+
+See "hg help cedit" and "hg help setuser" respectively for help on how to use cedit.

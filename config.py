@@ -85,7 +85,7 @@ def hgrccli(ui, **opts):
             paths.append(defaultpath("file", ui, opts['file']))
         if opts['env']:
             if 'HGRCPATH' in os.environ:
-                paths.append(defaultpath("env", ui))
+                paths.append(defaultpath("environment", ui))
             else:
                 ui.warn(_("No HGRCPATH in environment, skipping.\n"))
         paths = verifypaths(paths)
@@ -240,6 +240,14 @@ def existslocalrepo():
     return os.path.exists(os.path.join(os.getcwd(), ".hg"))
 
 
+def checkexists(path, pathtype):
+    if not os.path.isfile(path) and self._ui.promptchoice(_("No %s "+
+    "configuration found. Would you like to create one [y n]?")%
+        (pathtype), ['&no', '&yes'], 1):
+        with open(path, "wb") as _empty:
+            pass # Create an empty file for later editing
+
+
 def defaultpath(pathtype, ui, path = ""):
     """
     This functions assume the last path given for
@@ -256,7 +264,8 @@ def defaultpath(pathtype, ui, path = ""):
             " POSIX-style systems. Please use '-f' instead to"+
             " specify a file."))
             path = "<Not Supported>"
-    elif pathtype == "env":
+            return path
+    elif pathtype == "environment":
         paths = os.environ['HGRCPATH'].split(os.pathsep)
         path = os.path.abspath(paths[len(paths)-1])
     elif pathtype == "local":
@@ -265,9 +274,7 @@ def defaultpath(pathtype, ui, path = ""):
          path = os.path.abspath(path)
     else:
         raise "Invalid Path Type"
-    if not os.path.isfile(path):
-        ui.warn(_("No %s repository configuration found at %s,"+
-        " skipping.\n") % (pathtype, path))
+    checkexists(path, pathtype)
     return path
 
 
