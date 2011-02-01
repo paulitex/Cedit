@@ -140,7 +140,7 @@ def setoption(ui, paths, optstring):
     Sets option given in optstring in every path given in paths.
     Creates files, sections, and properties as needed.
     """
-    match = re.search("^([\w\-<>]+)\.([\w\-<>]+)\s*=\s*(.*)", optstring)
+    match = re.search("^([\w\-<>]+)\.([\w\-<>\.]+)\s*=\s*(.*)", optstring)
     if not match:
         ui.warn(_("Invalid add property syntax. See 'hg help cedit'.\n"))
     else:
@@ -165,7 +165,7 @@ def deleteoption(ui, paths, delstring):
     with the section, e.g. ui.username
     """
     secmatch = re.search("^\s*([\w\-<>]+)\s*$", delstring)
-    propmatch = re.search("^\s*([\w\-<>]+)\.([\w\-<>]+)\s*$", delstring)
+    propmatch = re.search("^\s*([\w\-<>]+)\.([\w\-<>\.]+)\s*$", delstring)
     if secmatch:
         sec = secmatch.group(1)
         for path in paths:
